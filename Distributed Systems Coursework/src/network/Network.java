@@ -6,9 +6,6 @@ import java.util.List;
 import simulator.Log;
 
 public class Network {
-
-	// TODO: The termination condition is not quite right!! Work on it until the log
-	// outputs are the same as the sample logs provided on the course web site.
 	
 	public float minimumEnergy;
 	public List<Node> nodes;
@@ -26,6 +23,7 @@ public class Network {
 		Node n = new Node(nodeId, posX, posY, energy, range);
 		nodes.add(n);
 		leaders.add(n);
+		System.out.println("Added " + n.nodeId + " to leaders");
 	}
 	
 	public void discover(){
@@ -41,9 +39,8 @@ public class Network {
 		waitForExecution();
 	}
 	
-	public void buildMst(){		
-		int previousNumLeaders;
-		do {
+	public void buildMst(){
+		 while (true){
 			// We have started a new level. Write to the log file which leaders we will be contacting.
 			Log.writeBs(leaders);
 			
@@ -52,13 +49,17 @@ public class Network {
 				n.initiateEdgeFind();
 			}
 			waitForExecution();
+			// Poll each of the leaders to find the status of MWOE selection
+			int numEdges = 0;
 			for (Node n : leaders){
+				numEdges += n.candidateEdges.size();
 				for (Edge e : n.candidateEdges){
 					System.out.println(e.left.nodeId + " " + e.right.nodeId + " " + e.weight);
 				}
 			}
+			if (numEdges == 0) break; // If we have no edges to add to the tree, we are done.
 			
-			// Tell the leaders to find the maximum to merge
+			// Tell the leaders to start merging
 			for (Node n : leaders) {
 				n.initiateMerge();
 			}
@@ -77,16 +78,12 @@ public class Network {
 			// Update the list of leaders.
 			List<Node> toRemove = new ArrayList<Node>();
 			for (Node n : leaders) if (!n.isLeader) toRemove.add(n);
-			previousNumLeaders = leaders.size();
 			leaders.removeAll(toRemove);
-			
-			// We have elected new leaders. Write to the log!
-			Log.writeElected(leaders);
+			Log.writeElected(leaders); // We have elected new leaders. Write to the log!
 			
 			for (Node n : leaders) System.out.print(n.nodeId + " "); 
 			System.out.println();
-		} while (leaders.size() < previousNumLeaders && leaders.size() > 1); 
-		// Loop until we have not removed any leaders, or we only have one leader (to rule them all).
+		}
 	}
 	
 	/**
@@ -98,6 +95,7 @@ public class Network {
 			for (Node n : nodes) n.timestep();
 			int numMessages = Network.messagesToSend.size();
 			sendAllMessages();
+			System.out.println("----");
 			executing = (numMessages != 0);
 		}
 	}
@@ -105,8 +103,9 @@ public class Network {
 	private void sendAllMessages(){
 		for (Message m : Network.messagesToSend){
 			m.receiver.messageQueue.add(m);
+			System.out.println(m.toString());
 		}
-		Network.messagesToSend = new ArrayList<Message>();
+		Network.messagesToSend.clear();
 	}
 	
 	public static float distanceBetweenNodes(Node a, Node b){

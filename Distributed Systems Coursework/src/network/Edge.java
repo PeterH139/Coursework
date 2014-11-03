@@ -34,4 +34,10 @@ public class Edge {
 				|| (this.left == e.right && this.right == e.left);
 		return eq;
 	}
+	
+	@Override
+	public String toString() {
+		// TODO Auto-generated method stub
+		return this.left.toString() + " -> " + this.right.toString() + " (" + this.weight + ")";
+	}
 }

@@ -51,8 +51,8 @@ public class Node {
 	
 	private void broadcast(Message m){
 		for (Node n : this.treeNodes){
-			if (m.sender != n){
-				new Message(this, n, m.id, m.edge, m.leaderId);
+			if (!m.sender.equals(n)){
+				send(new Message(this, n, m.id, m.edge, m.leaderId));
 			}
 		}	
 	}
@@ -65,7 +65,6 @@ public class Node {
 		float minWeight = Float.MAX_VALUE;
 		Node minNode = null;
 		for (Node n : this.neighbours){
-			
 			float dist = Network.distanceBetweenNodes(this,n);
 			// If this is smaller than the previous smallest edge and it belongs to a different leader
 			if (dist < minWeight && n.leaderId != this.leaderId){ 
@@ -92,13 +91,13 @@ public class Node {
 	 * to find their MWOE and report it back.
 	 */
 	public void initiateEdgeFind(){
+		this.candidateEdges.clear(); // Clear the candidate edges
 		Edge minEdge = this.findCandidateEdge();
 		if (minEdge != null){
-			this.candidateEdges = new ArrayList<Edge>(); // Clear the candidate edges
-			this.candidateEdges.add(minEdge);
-			for (Node n : treeNodes){
-				this.send(new Message(this, n, Message.FIND_MWOE_ID));
-			}
+			this.candidateEdges.add(minEdge);	
+		}
+		for (Node n : treeNodes){
+			this.send(new Message(this, n, Message.FIND_MWOE_ID));
 		}
 	}
 	
@@ -109,7 +108,7 @@ public class Node {
 			for (Edge e : candidateEdges){
 				minimumEdge = Edge.smallerOf(e, minimumEdge);
 			}
-			if (this.treeNodes.size() == 0){ // We are at level 0.
+			if (this.nodeId == minimumEdge.left.nodeId){ // The connection comes from the leader node.
 				this.send(new Message(this, minimumEdge.right, Message.CONNECT_ID, minimumEdge));
 			} else {
 				for (Node n : this.treeNodes){
@@ -121,7 +120,7 @@ public class Node {
 	
 	public void initiateLeaderChange(){
 		for (Node n : this.treeNodes){
-			this.send(new Message(this, n, Message.LEADER_CHANGE_ID, this.leaderId));
+			this.send(new Message(this, n, Message.LEADER_CHANGE_ID, this.nodeId));
 		}
 	}
 	
@@ -140,6 +139,7 @@ public class Node {
 			case Message.FIND_MWOE_ID:
 				// Test all neighbours to find the MWOE.
 				for (Node n : this.neighbours){
+					numEdgesWaitingFor++;
 					send(new Message(this, n, Message.TEST_EDGE_ID, this.leaderId));
 				}
 				// Broadcast in tree that leader wants MWOE
@@ -178,7 +178,8 @@ public class Node {
 					// We have a new leader, and this node is definitely not the leader.
 					this.leaderId = m.leaderId;
 					this.isLeader = false;
-				} 
+					this.candidateEdges.clear(); // No longer the leader, we shouldnt have any candidate edges.
+				}
 				// Continue broadcast in tree
 				broadcast(m);
 				break;
@@ -189,6 +190,7 @@ public class Node {
 				} else {
 					send(new Message(this, m.sender, Message.REJECT_EDGE_ID));
 				}
+				break;
 			case Message.ACCEPT_EDGE_ID:
 				this.numEdgesWaitingFor--; // We have received a reply from an edge, and we should action on it.
 				
@@ -205,6 +207,7 @@ public class Node {
 					// Initiate broadcast back in tree if we have found one.
 					if (this.mwoe != null){
 						send(new Message(this, m.sender, Message.REPORT_MWOE_ID, mwoe));
+						this.mwoe = null; // Done for this round. Reset
 					} 
 				}
 				break;
@@ -216,6 +219,7 @@ public class Node {
 					if (this.mwoe != null){
 						// Initiate broadcast back in tree that we have found one.
 						send(new Message(this, m.sender, Message.REPORT_MWOE_ID, mwoe));
+						this.mwoe = null; // Done for this round. Reset
 					} 
 				}
 				break;
@@ -226,5 +230,15 @@ public class Node {
 			
 			m = this.messageQueue.poll(); // Next message
 		}
+	}
+	@Override
+	public String toString() {
+		return "Node " + this.nodeId;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		Node n = (Node) obj;
+		return this.nodeId == n.nodeId;
 	}
 }

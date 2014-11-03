@@ -1,9 +1,5 @@
-bs 3, 9, 5, 7, 4
-connect 9-3
-connect 7-5
-elected 9
-elected 7
-elected 4
-bs 9, 7, 4
-elected 7
-elected 4
+bs 88, 111, 7
+added 7-88
+elected 88
+elected 111
+bs 88, 111

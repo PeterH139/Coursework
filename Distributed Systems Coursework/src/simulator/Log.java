@@ -38,10 +38,9 @@ public class Log {
 	}
 	
 	public static void writeBs(List<Node> nodes){
-		List<Node> ns = nodes;
-		String s = ""+ns.remove(0).nodeId;
-		for (Node n : ns){
-			s += ", " + n.nodeId;
+		String s = ""+nodes.get(0).nodeId;
+		for (int i = 1; i < nodes.size(); i++){
+			s += ", " + nodes.get(i).nodeId;
 		}
 		Log.write("bs " + s);
 	}
@@ -52,9 +51,13 @@ public class Log {
 		}
 	}
 	
+	public static void writeElected(Node n){
+		Log.write("elected " + n.nodeId);
+	}
+	
 	public static void writeEdge(Edge e){
 		if (!writtenEdges.contains(e)){
-			Log.write("connect " + e.left.nodeId + "-" + e.right.nodeId);
+			Log.write("added " + e.left.nodeId + "-" + e.right.nodeId);
 		}
 		writtenEdges.add(e);
 	}

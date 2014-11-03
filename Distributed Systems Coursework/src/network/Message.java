@@ -40,4 +40,9 @@ public class Message {
 	public Message(Node sender, Node receiver, int id, int leaderId){
 		this(sender, receiver, id, null, leaderId);
 	}
+	
+	@Override
+	public String toString() {
+		return this.sender.toString() + " >> " + this.receiver.toString() + ": " + this.id + " " + this.edge + " " + this.leaderId;
+	}
 }
