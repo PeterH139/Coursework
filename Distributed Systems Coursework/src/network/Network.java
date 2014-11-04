@@ -36,9 +36,7 @@ public class Network {
 	public void discover(){
 		for (Node n : nodes){
 			for (Node m : nodes){
-				if (n.nodeId == m.nodeId){
-					continue;
-				} else if (distanceBetweenNodes(n,m) <= n.range){
+				if (n.nodeId != m.nodeId && distanceBetweenNodes(n,m) <= n.range){
 					n.initiateDiscover(m);
 				}
 			}
@@ -109,7 +107,9 @@ public class Network {
                 this.leaders.clear();
                 for (Node n : nodes) if (n.isLeader) leaders.add(n);
 
+                Log.shouldWrite = false;
                 buildMst();
+                Log.shouldWrite = true;
             }
 			
 			numAlive = i;
@@ -132,7 +132,7 @@ public class Network {
 	
 	private void sendAllMessages(){
 		for (Message m : Network.messagesToSend){
-            if (m.sender.isAlive || m.id == Message.NODE_DOWN_ID){
+            if (m.sender.isAlive || m.type == Message.Type.NODE_DOWN){
                 m.receiver.messageQueue.add(m);
                 System.out.println(m.toString());
             }

@@ -16,20 +16,8 @@ data from 35 to 30, energy:16.619663
 data from 35 to 50, energy:13.936381
 data from 30 to 20, energy:11.908832
 node down 30
-bs 20, 35
-added 35-20
-elected 35
-bs 35
 data from 20 to 10, energy:14.908833
 data from 20 to 35, energy:9.817663
 node down 20
-bs 10, 35
-added 35-10
-elected 35
-bs 35
 data from 35 to 50, energy:11.253099
 node down 35
-bs 10, 50
-added 50-10
-elected 50
-bs 50
