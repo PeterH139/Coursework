@@ -62,4 +62,12 @@ public class Log {
 		writtenEdges.add(e);
 	}
 	
+	public static void writeData(Node from, Node to){
+		Log.write("data from " + from.nodeId + " to " + to.nodeId + ", energy:" + from.energyLevel);
+	}
+	
+	public static void writeNodeDown(Node n){
+		Log.write("node down " + n.nodeId);
+	}
+	
 }

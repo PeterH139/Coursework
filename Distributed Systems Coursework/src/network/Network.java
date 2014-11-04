@@ -47,7 +47,9 @@ public class Network {
 	}
 	
 	public void buildMst(){
+		System.out.println("Begin Build MST");
 		 while (true){
+			System.out.println("Round Start");
 			// We have started a new level. Write to the log file which leaders we will be contacting.
 			Log.writeBs(leaders);
 			
@@ -58,7 +60,14 @@ public class Network {
 			// Poll each of the leaders to find the status of MWOE selection
 			// If we have no edges to add to the tree, we are done.
 			int numEdges = 0;
-			for (Node n : leaders) numEdges += n.candidateEdges.size();
+			for (Node n : leaders) {
+				numEdges += n.candidateEdges.size();
+				for (Edge e : n.candidateEdges){
+					System.out.println(e.toString());
+				}
+			}
+			System.out.println("Edges: " + numEdges);
+			
 			if (numEdges == 0) break; 
 			
 			// Tell the leaders to start merging
@@ -78,6 +87,7 @@ public class Network {
 			// The elected leaders can be found from the leaderId of previous leaders.
 		    Log.writeElected(toRemove);
 		 }
+		 System.out.println("MST Built");
 	}
 	
 	public void executeTransmissions(){
@@ -122,7 +132,7 @@ public class Network {
 	
 	private void sendAllMessages(){
 		for (Message m : Network.messagesToSend){
-            if (m.sender.isAlive){
+            if (m.sender.isAlive || m.id == Message.NODE_DOWN_ID){
                 m.receiver.messageQueue.add(m);
                 System.out.println(m.toString());
             }

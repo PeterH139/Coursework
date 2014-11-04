@@ -25,11 +25,15 @@ public class Run {
         network.executeTransmissions();
 		
 		for (Node n : network.nodes){
-			System.out.print("Tree nodes for " + n.nodeId + " ");
-			for (Node m : n.treeNodes){
-				System.out.print(m.nodeId + " ");
+			if (n.isAlive){
+				System.out.print("Tree nodes for " + n.nodeId + " ");
+				for (Node m : n.treeNodes){
+					System.out.print(m.nodeId + " ");
+				}
+				System.out.println();
+			} else {
+				System.out.println(n.toString() + " is dead");
 			}
-			System.out.println();
 		}
 	}
 	

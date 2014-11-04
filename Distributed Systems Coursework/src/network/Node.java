@@ -68,13 +68,17 @@ public class Node {
 			if (msg == null || !msg.sender.equals(n)){ // Sender will only equal null on first call
 				send(new Message(this, n, Message.DATA_MESSAGE_ID));
 				this.energyLevel -= Network.distanceBetweenNodes(this, n) * Message.MESSAGE_COST_MULTIPLIER;
+				Log.writeData(this, n);
 				// Check if this node is now in danger.
 				if (this.energyLevel < Network.minimumEnergy){
 					// Broadcast to all tree nodes that this node is going down
 					for (Node m : this.treeNodes) send(new Message(this, m, Message.NODE_DOWN_ID));
-					// This node is now dead.
+					// This node is now dead, and it cannot be a leader.
 					this.isAlive = false;
-					// Stop sending data messages, and remove all messages from the queue that are to be handled.
+					this.isLeader = false;
+					System.out.println("Node Death " + this.nodeId);
+					Log.writeNodeDown(this);
+					// Stop sending data messages.
 					break;
 				}
 			}
