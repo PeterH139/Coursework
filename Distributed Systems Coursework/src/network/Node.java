@@ -8,9 +8,10 @@ import java.util.Queue;
 import simulator.Log;
 
 public class Node {
-
-	public float energyLevel = 0;
-	public int nodeId = 0;
+	
+	public float energyLevel;
+	public boolean isAlive;
+	public int nodeId;
 	public float range;
 	public float positionX;
 	public float positionY;
@@ -31,6 +32,7 @@ public class Node {
 		this.positionX = positionX;
 		this.positionY = positionY;
 		this.energyLevel = initialEnergy;
+		this.isAlive = true;
 		this.range = range;
 		this.neighbours = new ArrayList<Node>();
 		this.messageQueue = new LinkedList<Message>();
@@ -55,6 +57,28 @@ public class Node {
 				send(new Message(this, n, m.id, m.edge, m.leaderId));
 			}
 		}	
+	}
+	
+	public void dataBroadcast(){
+		dataBroadcast(null);
+	}
+	
+	private void dataBroadcast(Message msg){
+		for (Node n : this.treeNodes){
+			if (msg.sender == null || !msg.sender.equals(n)){ // Sender will only equal null on first call
+				send(new Message(this, n, Message.DATA_MESSAGE_ID));
+				this.energyLevel -= Network.distanceBetweenNodes(this, n) * Message.MESSAGE_COST_MULTIPLIER;
+				// Check if this node is now in danger.
+				if (this.energyLevel < Network.minimumEnergy){
+					// Broadcast to all tree nodes that this node is going down
+					for (Node m : this.treeNodes) send(new Message(this, m, Message.NODE_DOWN_ID));
+					// This node is now dead.
+					this.isAlive = false;
+					// Stop sending data messages.
+					break;
+				}
+			}
+		}
 	}
 	
 	/**
@@ -222,6 +246,27 @@ public class Node {
 						this.mwoe = null; // Done for this round. Reset
 					} 
 				}
+				break;
+			case Message.DATA_MESSAGE_ID:
+				dataBroadcast(m); // Continue data broadcast
+				break;
+			case Message.NODE_DOWN_ID:
+				// The sender of this message has just gone down, remove it from the tree nodes.
+				this.treeNodes.remove(m.sender);
+				// Declare this node an emergency leader and broadcast this fact to its tree.
+				this.isLeader = true;
+				this.leaderId = this.nodeId;
+				for (Node n : this.treeNodes){
+					send(new Message(this, n, Message.EMERGENGY_LEADER_ID, this.nodeId));
+				}
+				break;
+			case Message.EMERGENGY_LEADER_ID:
+				// A node has gone down, we need to rebuild the tree.
+				// Our new leader is the leaderId contained in this message.
+				this.isLeader = false;
+				this.leaderId = m.leaderId;
+				// Broadcast to the rest of the tree.
+				broadcast(m);
 				break;
 			default:
 				System.err.println("Message ID not recognized. " + m.id);

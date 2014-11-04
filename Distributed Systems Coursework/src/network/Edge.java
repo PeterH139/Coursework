@@ -37,7 +37,6 @@ public class Edge {
 	
 	@Override
 	public String toString() {
-		// TODO Auto-generated method stub
 		return this.left.toString() + " -> " + this.right.toString() + " (" + this.weight + ")";
 	}
 }

@@ -2,6 +2,8 @@ package network;
 
 public class Message {
 	
+	public static final float MESSAGE_COST_MULTIPLIER = 1.2f;
+	
 	public static final int DISCOVER_ID = 0;
 	public static final int DISCOVER_REPLY_ID = 1;
 	public static final int FIND_MWOE_ID = 2;
@@ -13,6 +15,9 @@ public class Message {
 	public static final int TEST_EDGE_ID = 8;
 	public static final int ACCEPT_EDGE_ID = 9;
 	public static final int REJECT_EDGE_ID = 10;
+	public static final int DATA_MESSAGE_ID = 11;
+	public static final int NODE_DOWN_ID = 12;
+	public static final int EMERGENGY_LEADER_ID = 13;
 	
 	
 	public int id;

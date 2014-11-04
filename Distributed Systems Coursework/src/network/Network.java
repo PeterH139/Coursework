@@ -1,21 +1,25 @@
 package network;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
 
 import simulator.Log;
 
 public class Network {
 	
-	public float minimumEnergy;
+	public static List<Message> messagesToSend;
+	public static float minimumEnergy;
+	
 	public List<Node> nodes;
 	public List<Node> leaders;
-	
-	public static List<Message> messagesToSend;
+	public Queue<Integer> broadcastIds;
 	
 	public Network(){
 		nodes = new ArrayList<Node>();
 		leaders = new ArrayList<Node>();
+		broadcastIds  = new LinkedList<Integer>();
 		messagesToSend = new ArrayList<Message>();
 	}
 	
@@ -23,7 +27,10 @@ public class Network {
 		Node n = new Node(nodeId, posX, posY, energy, range);
 		nodes.add(n);
 		leaders.add(n);
-		System.out.println("Added " + n.nodeId + " to leaders");
+	}
+	
+	public void addBroadcast(int nodeId){
+		this.broadcastIds.add(nodeId);
 	}
 	
 	public void discover(){
@@ -45,44 +52,46 @@ public class Network {
 			Log.writeBs(leaders);
 			
 			// Each fragment finds all possible MWOEs
-			for (Node n : leaders){
-				n.initiateEdgeFind();
-			}
+			for (Node n : leaders) n.initiateEdgeFind();
 			waitForExecution();
+			
 			// Poll each of the leaders to find the status of MWOE selection
+			// If we have no edges to add to the tree, we are done.
 			int numEdges = 0;
-			for (Node n : leaders){
-				numEdges += n.candidateEdges.size();
-				for (Edge e : n.candidateEdges){
-					System.out.println(e.left.nodeId + " " + e.right.nodeId + " " + e.weight);
-				}
-			}
-			if (numEdges == 0) break; // If we have no edges to add to the tree, we are done.
+			for (Node n : leaders) numEdges += n.candidateEdges.size();
+			if (numEdges == 0) break; 
 			
 			// Tell the leaders to start merging
-			for (Node n : leaders) {
-				n.initiateMerge();
-			}
+			for (Node n : leaders) n.initiateMerge();
 			waitForExecution();
 				
 			// Tell the leaders to broadcast their ID in the new tree(s).
-			for (Node n : leaders) {
-				n.initiateLeaderChange();
-			}
+			for (Node n : leaders) n.initiateLeaderChange();
 			waitForExecution();
-			
-			for (Node n : nodes){
-				System.out.println("Node " + n.nodeId + " led by " + n.leaderId);
-			}
 			
 			// Update the list of leaders.
 			List<Node> toRemove = new ArrayList<Node>();
 			for (Node n : leaders) if (!n.isLeader) toRemove.add(n);
 			leaders.removeAll(toRemove);
-			Log.writeElected(leaders); // We have elected new leaders. Write to the log!
 			
-			for (Node n : leaders) System.out.print(n.nodeId + " "); 
-			System.out.println();
+			// We have elected new leaders. Write to the log!
+			// The elected leaders can be found from the leaderId of previous leaders.
+			Log.writeElected(toRemove);
+		}
+	}
+	
+	public void executeTransmissions(){
+		int numAlive = nodes.size();//nodes.values().size();
+		for (int id : this.broadcastIds){
+			nodes.get(id).dataBroadcast();
+			waitForExecution();
+			 
+			// If any nodes went down as a result of the last broadcast, then we need to rebuild the tree.
+			int i = 0;
+			for (Node n : nodes) if (n.isAlive) i++;
+			if (i < numAlive) buildMst();
+			
+			numAlive = i;
 		}
 	}
 	

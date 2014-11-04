@@ -31,9 +31,11 @@ public class InputParser {
 					break;
 				case "bcst":
 					// For later tasks
+					int nId = Integer.parseInt(st[2]);
+					outputNetwork.addBroadcast(nId);
 					break;
 				default:
-					outputNetwork.minimumEnergy = Float.parseFloat(st[0]);
+					Network.minimumEnergy = Float.parseFloat(st[0]);
 				}
 				
 				// Read next line

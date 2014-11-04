@@ -16,7 +16,7 @@ public class Log {
 	private static File outputFile = new File("output/log.txt");
 	private static List<Edge> writtenEdges = new ArrayList<Edge>();
 	
-	public static void write(String s){
+	private static void write(String s){
 		if (writer == null){
 			try {
 				if (!outputFile.exists()){
@@ -46,13 +46,13 @@ public class Log {
 	}
 	
 	public static void writeElected(List<Node> nodes){
+		List<Integer> ids = new ArrayList<Integer>();
 		for (Node n : nodes){
-			Log.write("elected " + n.nodeId);
+			if(!ids.contains(n.leaderId)) ids.add(n.leaderId);
 		}
-	}
-	
-	public static void writeElected(Node n){
-		Log.write("elected " + n.nodeId);
+		for (int n : ids){
+			Log.write("elected " + n);
+		}
 	}
 	
 	public static void writeEdge(Edge e){

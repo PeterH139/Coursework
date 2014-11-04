@@ -21,6 +21,8 @@ public class Run {
 		// Build the MST
 		network.buildMst();
 		
+		// Execute the Broadcast messages.
+		
 		for (Node n : network.nodes){
 			System.out.print("Tree nodes for " + n.nodeId + " ");
 			for (Node m : n.treeNodes){
