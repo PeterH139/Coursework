@@ -68,28 +68,39 @@ public class Network {
 			// Tell the leaders to broadcast their ID in the new tree(s).
 			for (Node n : leaders) n.initiateLeaderChange();
 			waitForExecution();
-			
-			// Update the list of leaders.
-			List<Node> toRemove = new ArrayList<Node>();
-			for (Node n : leaders) if (!n.isLeader) toRemove.add(n);
-			leaders.removeAll(toRemove);
+
+            // Update the list of leaders.
+            List<Node> toRemove = new ArrayList<Node>();
+            for (Node n : leaders) if (!n.isLeader) toRemove.add(n);
+            leaders.removeAll(toRemove);
 			
 			// We have elected new leaders. Write to the log!
 			// The elected leaders can be found from the leaderId of previous leaders.
-			Log.writeElected(toRemove);
-		}
+		    Log.writeElected(toRemove);
+		 }
 	}
 	
 	public void executeTransmissions(){
-		int numAlive = nodes.size();//nodes.values().size();
+		int numAlive = nodes.size();
 		for (int id : this.broadcastIds){
-			nodes.get(id).dataBroadcast();
+            for (Node n : nodes){
+                if (n.nodeId == id && n.isAlive){
+                    n.dataBroadcast();
+                    break;
+                }
+            }
 			waitForExecution();
 			 
 			// If any nodes went down as a result of the last broadcast, then we need to rebuild the tree.
 			int i = 0;
 			for (Node n : nodes) if (n.isAlive) i++;
-			if (i < numAlive) buildMst();
+			if (i < numAlive) {
+                // Update the leaders since they will have changed as a result of the node death(s).
+                this.leaders.clear();
+                for (Node n : nodes) if (n.isLeader) leaders.add(n);
+
+                buildMst();
+            }
 			
 			numAlive = i;
 		}
@@ -101,7 +112,7 @@ public class Network {
 	private void waitForExecution() {
 		boolean executing = true;
 		while(executing){
-			for (Node n : nodes) n.timestep();
+			for (Node n : nodes) if (n.isAlive) n.timestep();
 			int numMessages = Network.messagesToSend.size();
 			sendAllMessages();
 			System.out.println("----");
@@ -111,8 +122,10 @@ public class Network {
 	
 	private void sendAllMessages(){
 		for (Message m : Network.messagesToSend){
-			m.receiver.messageQueue.add(m);
-			System.out.println(m.toString());
+            if (m.sender.isAlive){
+                m.receiver.messageQueue.add(m);
+                System.out.println(m.toString());
+            }
 		}
 		Network.messagesToSend.clear();
 	}

@@ -65,7 +65,7 @@ public class Node {
 	
 	private void dataBroadcast(Message msg){
 		for (Node n : this.treeNodes){
-			if (msg.sender == null || !msg.sender.equals(n)){ // Sender will only equal null on first call
+			if (msg == null || !msg.sender.equals(n)){ // Sender will only equal null on first call
 				send(new Message(this, n, Message.DATA_MESSAGE_ID));
 				this.energyLevel -= Network.distanceBetweenNodes(this, n) * Message.MESSAGE_COST_MULTIPLIER;
 				// Check if this node is now in danger.
@@ -74,7 +74,7 @@ public class Node {
 					for (Node m : this.treeNodes) send(new Message(this, m, Message.NODE_DOWN_ID));
 					// This node is now dead.
 					this.isAlive = false;
-					// Stop sending data messages.
+					// Stop sending data messages, and remove all messages from the queue that are to be handled.
 					break;
 				}
 			}
@@ -91,7 +91,7 @@ public class Node {
 		for (Node n : this.neighbours){
 			float dist = Network.distanceBetweenNodes(this,n);
 			// If this is smaller than the previous smallest edge and it belongs to a different leader
-			if (dist < minWeight && n.leaderId != this.leaderId){ 
+			if (dist < minWeight && n.leaderId != this.leaderId && n.isAlive){
 				minWeight = dist;
 				minNode = n;
 			}
@@ -163,8 +163,10 @@ public class Node {
 			case Message.FIND_MWOE_ID:
 				// Test all neighbours to find the MWOE.
 				for (Node n : this.neighbours){
-					numEdgesWaitingFor++;
-					send(new Message(this, n, Message.TEST_EDGE_ID, this.leaderId));
+                    if (n.isAlive){
+                        numEdgesWaitingFor++;
+                        send(new Message(this, n, Message.TEST_EDGE_ID, this.leaderId));
+                    }
 				}
 				// Broadcast in tree that leader wants MWOE
 				broadcast(m);
