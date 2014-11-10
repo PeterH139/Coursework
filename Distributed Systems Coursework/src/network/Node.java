@@ -54,7 +54,7 @@ public class Node {
 	private void broadcast(Message m){
 		for (Node n : this.treeNodes){
 			if (!m.sender.equals(n)){
-				send(new Message(this, n, m.id, m.edge, m.leaderId));
+				send(new Message(this, n, m.type, m.edge, m.leaderId));
 			}
 		}	
 	}
@@ -65,16 +65,20 @@ public class Node {
 	
 	private void dataBroadcast(Message msg){
 		for (Node n : this.treeNodes){
-			if (msg == null || !msg.sender.equals(n)){ // Sender will only equal null on first call
-				send(new Message(this, n, Message.DATA_MESSAGE_ID));
+			if (msg == null || !msg.sender.equals(n)){ // Message will only equal null on first call
+				send(new Message(this, n, Message.Type.DATA_MESSAGE));
 				this.energyLevel -= Network.distanceBetweenNodes(this, n) * Message.MESSAGE_COST_MULTIPLIER;
+				Log.writeData(this, n);
 				// Check if this node is now in danger.
 				if (this.energyLevel < Network.minimumEnergy){
 					// Broadcast to all tree nodes that this node is going down
-					for (Node m : this.treeNodes) send(new Message(this, m, Message.NODE_DOWN_ID));
-					// This node is now dead.
+					for (Node m : this.treeNodes) send(new Message(this, m, Message.Type.NODE_DOWN));
+					// This node is now dead, and it cannot be a leader.
 					this.isAlive = false;
-					// Stop sending data messages, and remove all messages from the queue that are to be handled.
+					this.isLeader = false;
+					System.out.println("Node Death " + this.nodeId);
+					Log.writeNodeDown(this);
+					// Stop sending data messages.
 					break;
 				}
 			}
@@ -106,7 +110,7 @@ public class Node {
 	}
 	
 	public void initiateDiscover(Node m){
-		this.send(new Message(this, m, Message.DISCOVER_ID));
+		this.send(new Message(this, m, Message.Type.DISCOVER));
 	}
 	
 	/**
@@ -121,7 +125,7 @@ public class Node {
 			this.candidateEdges.add(minEdge);	
 		}
 		for (Node n : treeNodes){
-			this.send(new Message(this, n, Message.FIND_MWOE_ID));
+			this.send(new Message(this, n, Message.Type.FIND_MWOE));
 		}
 	}
 	
@@ -132,11 +136,12 @@ public class Node {
 			for (Edge e : candidateEdges){
 				minimumEdge = Edge.smallerOf(e, minimumEdge);
 			}
-			if (this.nodeId == minimumEdge.left.nodeId){ // The connection comes from the leader node.
-				this.send(new Message(this, minimumEdge.right, Message.CONNECT_ID, minimumEdge));
+			if (this.nodeId == minimumEdge.left.nodeId){
+                // If the connection comes from the leader node, just send a connect message.
+				this.send(new Message(this, minimumEdge.right, Message.Type.CONNECT, minimumEdge));
 			} else {
 				for (Node n : this.treeNodes){
-					this.send(new Message(this, n, Message.SELECTED_MWOE_ID, minimumEdge));
+					this.send(new Message(this, n, Message.Type.SELECTED_MWOE, minimumEdge));
 				}
 			}	
 		}
@@ -144,7 +149,7 @@ public class Node {
 	
 	public void initiateLeaderChange(){
 		for (Node n : this.treeNodes){
-			this.send(new Message(this, n, Message.LEADER_CHANGE_ID, this.nodeId));
+			this.send(new Message(this, n, Message.Type.LEADER_CHANGE, this.nodeId));
 		}
 	}
 	
@@ -152,26 +157,26 @@ public class Node {
 		// Handle all messages that have been received and carry out required calculations
 		Message m = this.messageQueue.poll(); // First Message
 		while(m != null){
-			switch(m.id){
-			case Message.DISCOVER_ID:
-				send(new Message(this, m.sender, Message.DISCOVER_REPLY_ID));
+			switch(m.type){
+			case DISCOVER:
+				send(new Message(this, m.sender, Message.Type.DISCOVER_REPLY));
 				break;
-			case Message.DISCOVER_REPLY_ID:
+			case DISCOVER_REPLY:
 				this.neighbours.add(m.sender);
 				System.out.println("Link " + this.nodeId + " to " + m.sender.nodeId);
 				break;
-			case Message.FIND_MWOE_ID:
+			case FIND_MWOE:
 				// Test all neighbours to find the MWOE.
 				for (Node n : this.neighbours){
                     if (n.isAlive){
                         numEdgesWaitingFor++;
-                        send(new Message(this, n, Message.TEST_EDGE_ID, this.leaderId));
+                        send(new Message(this, n, Message.Type.TEST_EDGE, this.leaderId));
                     }
 				}
 				// Broadcast in tree that leader wants MWOE
 				broadcast(m);
 				break;
-			case Message.REPORT_MWOE_ID:
+			case REPORT_MWOE:
 				if (this.isLeader){
 					 // We have received a response
 					this.candidateEdges.add(m.edge);
@@ -180,26 +185,26 @@ public class Node {
 					broadcast(m);
 				}
 				break;
-			case Message.SELECTED_MWOE_ID:
+			case SELECTED_MWOE:
 				if (m.edge.left.nodeId == this.nodeId){
 					// We are at the node that needs to make the connection.
-					send(new Message(this, m.edge.right, Message.CONNECT_ID, m.edge));
+					send(new Message(this, m.edge.right, Message.Type.CONNECT, m.edge));
 				} else {
 					// Need to keep broadcasting message in the tree.
 					broadcast(m);
 				}
 				break;
-			case Message.CONNECT_ID:
+			case CONNECT:
 				System.out.println("Connect Request: " + m.edge.left.nodeId + " to " + m.edge.right.nodeId + " (" + this.nodeId + ")");
-				send(new Message(this, m.sender, Message.CONNECT_ACCEPT_ID, m.edge));
+				send(new Message(this, m.sender, Message.Type.CONNECT_ACCEPT, m.edge));
 				if (!this.treeNodes.contains(m.sender)) this.treeNodes.add(m.sender);
 				Log.writeEdge(m.edge);
 				break;
-			case Message.CONNECT_ACCEPT_ID:
+			case CONNECT_ACCEPT:
 				System.out.println("Connect Accepted." + this.nodeId + " to " + m.sender.nodeId);
 				if (!this.treeNodes.contains(m.sender)) this.treeNodes.add(m.sender);
 				break;
-			case Message.LEADER_CHANGE_ID:
+			case LEADER_CHANGE:
 				if (this.leaderId < m.leaderId){
 					// We have a new leader, and this node is definitely not the leader.
 					this.leaderId = m.leaderId;
@@ -209,15 +214,15 @@ public class Node {
 				// Continue broadcast in tree
 				broadcast(m);
 				break;
-			case Message.TEST_EDGE_ID:
+			case TEST_EDGE:
 				// Check if our leader id is different to the leader id of the message sender and reply
 				if (this.leaderId != m.leaderId){
-					send(new Message(this, m.sender, Message.ACCEPT_EDGE_ID));
+					send(new Message(this, m.sender, Message.Type.ACCEPT_EDGE));
 				} else {
-					send(new Message(this, m.sender, Message.REJECT_EDGE_ID));
+					send(new Message(this, m.sender, Message.Type.REJECT_EDGE));
 				}
 				break;
-			case Message.ACCEPT_EDGE_ID:
+			case ACCEPT_EDGE:
 				this.numEdgesWaitingFor--; // We have received a reply from an edge, and we should action on it.
 				
 				// Check to see if this edge has lower weight than previous minEdge
@@ -232,37 +237,37 @@ public class Node {
 				if (this.numEdgesWaitingFor == 0) {
 					// Initiate broadcast back in tree if we have found one.
 					if (this.mwoe != null){
-						send(new Message(this, m.sender, Message.REPORT_MWOE_ID, mwoe));
+						send(new Message(this, m.sender, Message.Type.REPORT_MWOE, mwoe));
 						this.mwoe = null; // Done for this round. Reset
 					} 
 				}
 				break;
-			case Message.REJECT_EDGE_ID:
+			case REJECT_EDGE:
 				this.numEdgesWaitingFor--; // We have received a reply from an edge, but we should ignore it.
 				
 				// Check if we have received all replies yet
 				if (this.numEdgesWaitingFor == 0) {
 					if (this.mwoe != null){
 						// Initiate broadcast back in tree that we have found one.
-						send(new Message(this, m.sender, Message.REPORT_MWOE_ID, mwoe));
+						send(new Message(this, m.sender, Message.Type.REPORT_MWOE, mwoe));
 						this.mwoe = null; // Done for this round. Reset
 					} 
 				}
 				break;
-			case Message.DATA_MESSAGE_ID:
+			case DATA_MESSAGE:
 				dataBroadcast(m); // Continue data broadcast
 				break;
-			case Message.NODE_DOWN_ID:
+			case NODE_DOWN:
 				// The sender of this message has just gone down, remove it from the tree nodes.
 				this.treeNodes.remove(m.sender);
 				// Declare this node an emergency leader and broadcast this fact to its tree.
 				this.isLeader = true;
 				this.leaderId = this.nodeId;
 				for (Node n : this.treeNodes){
-					send(new Message(this, n, Message.EMERGENGY_LEADER_ID, this.nodeId));
+					send(new Message(this, n, Message.Type.EMERGENCY_LEADER, this.nodeId));
 				}
 				break;
-			case Message.EMERGENGY_LEADER_ID:
+			case EMERGENCY_LEADER:
 				// A node has gone down, we need to rebuild the tree.
 				// Our new leader is the leaderId contained in this message.
 				this.isLeader = false;
@@ -271,7 +276,7 @@ public class Node {
 				broadcast(m);
 				break;
 			default:
-				System.err.println("Message ID not recognized. " + m.id);
+				System.err.println("Message type not recognized. " + m.type);
 				System.exit(-1);
 			}
 			

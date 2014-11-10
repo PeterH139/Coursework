@@ -26,13 +26,18 @@ public class Edge {
 	public Edge reverse(){
 		return new Edge(this.right, this.left, this.weight);
 	}
-	
+
+    // An edge is bidirectional, so a -> b is equivalent to b -> a.
 	@Override
-	public boolean equals(Object arg0) {
-		Edge e = (Edge) arg0;
-		boolean eq = (this.left == e.left && this.right == e.right)
-				|| (this.left == e.right && this.right == e.left);
-		return eq;
+	public boolean equals(Object obj) {
+        if (obj instanceof  Edge)  {
+            Edge e = (Edge) obj;
+            boolean eq = (this.left == e.left && this.right == e.right)
+                    || (this.left == e.right && this.right == e.left);
+            return eq;
+        } else {
+            return super.equals(obj);
+        }
 	}
 	
 	@Override

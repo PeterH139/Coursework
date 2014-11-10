@@ -8,6 +8,16 @@ bs 20, 50
 added 20-30
 elected 50
 bs 50
-bs 50
-bs 50
-bs 50
+data from 10 to 20, energy:23.302944
+data from 20 to 30, energy:16.605888
+data from 30 to 35, energy:15.302944
+data from 35 to 50, energy:18.31672
+data from 35 to 30, energy:16.619663
+data from 35 to 50, energy:13.936381
+data from 30 to 20, energy:11.908832
+node down 30
+data from 20 to 10, energy:14.908833
+data from 20 to 35, energy:9.817663
+node down 20
+data from 35 to 50, energy:11.253099
+node down 35

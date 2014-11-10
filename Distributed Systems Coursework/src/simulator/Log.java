@@ -10,31 +10,38 @@ import java.util.List;
 import network.Edge;
 import network.Node;
 
+/**
+ * Used for logging data to the output file. File will be generated in ./output/log.txt
+ */
 public class Log {
+
+    public static boolean shouldWrite = true;
 
 	private static BufferedWriter writer;
 	private static File outputFile = new File("output/log.txt");
 	private static List<Edge> writtenEdges = new ArrayList<Edge>();
-	
+
 	private static void write(String s){
-		if (writer == null){
-			try {
-				if (!outputFile.exists()){
-					outputFile.getParentFile().mkdirs();
-					outputFile.createNewFile();
-				}
-				writer = new BufferedWriter(new FileWriter("output/log.txt"));
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		
-		try {
-			writer.write(s + "\n");
-			writer.flush();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
+        if (shouldWrite){
+            if (writer == null){
+                try {
+                    if (!outputFile.exists()){
+                        outputFile.getParentFile().mkdirs();
+                        outputFile.createNewFile();
+                    }
+                    writer = new BufferedWriter(new FileWriter("output/log.txt"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try {
+                writer.write(s + "\n");
+                writer.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 	}
 	
 	public static void writeBs(List<Node> nodes){
@@ -60,6 +67,14 @@ public class Log {
 			Log.write("added " + e.left.nodeId + "-" + e.right.nodeId);
 		}
 		writtenEdges.add(e);
+	}
+	
+	public static void writeData(Node from, Node to){
+		Log.write("data from " + from.nodeId + " to " + to.nodeId + ", energy:" + from.energyLevel);
+	}
+	
+	public static void writeNodeDown(Node n){
+		Log.write("node down " + n.nodeId);
 	}
 	
 }
